@@ -6,18 +6,24 @@ package jaderender
 
 import (
 	"net/http"
+
 	"github.com/Lnd-stoL/gojade"
 	"github.com/gin-gonic/gin/render"
 )
 
+type CustomFunction struct {
+	Name     string
+	Function interface{}
+}
 
 // RenderOptions is used to configure the renderer.
 type RenderOptions struct {
 	TemplateDir string
 	Beautify    bool
 	CacheSize   int
-}
 
+	CustomFunctions []CustomFunction
+}
 
 // JadeRender is a custom Gin template renderer using gojade.
 type JadeRender struct {
@@ -25,9 +31,8 @@ type JadeRender struct {
 	Context      interface{}
 	TemplateName string
 
-	cache        *renderCache
+	cache *renderCache
 }
-
 
 // New creates a new JadeRender instance with custom Options.
 func New(options RenderOptions) *JadeRender {
@@ -36,6 +41,10 @@ func New(options RenderOptions) *JadeRender {
 	}
 	this.Template.ViewPath = options.TemplateDir
 	this.Template.Beautify = options.Beautify
+
+	for _, fn := range options.CustomFunctions {
+		this.Template.RegisterFunction(fn.Name, fn.Function)
+	}
 
 	if options.CacheSize > 0 {
 		this.cache = newRenderCache(options.CacheSize)
@@ -48,18 +57,18 @@ func New(options RenderOptions) *JadeRender {
 func Default() *JadeRender {
 	return New(RenderOptions{
 		TemplateDir: "views",
-		Beautify: false,
-		CacheSize: 128,
+		Beautify:    false,
+		CacheSize:   128,
 	})
 }
 
 // Instance should return a new JadeRender struct per request
 func (this *JadeRender) Instance(templateName string, data interface{}) render.Render {
 	return JadeRender{
-		Template: this.Template,
-		Context:  data,
+		Template:     this.Template,
+		Context:      data,
 		TemplateName: templateName,
-		cache: this.cache,
+		cache:        this.cache,
 	}
 }
 
